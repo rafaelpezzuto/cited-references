@@ -39,12 +39,15 @@ CITATION_ROW_KEYS_ELSEVIER = [
 
 
 class Citation:
-    def __init__(self, data, format='json', keys=CITATION_ROW_KEYS_SCIELO):
+    def __init__(self, data, format='json', keys=CITATION_ROW_KEYS_SCIELO, use_proj056=False, counter=1):
         if format == 'json':
             self.load_from_json(data, keys)
 
         elif format == 'csv':
-            self.load_from_csv(data)
+            if use_proj056:
+                self.load_from_csv_proj056(data, counter)
+            else:
+                self.load_from_csv(data)
 
     def load_from_csv(self, data):
         els = data.strip().split('|')
@@ -60,6 +63,31 @@ class Citation:
         elif '~~1' in els[3]:
             discard, sb_cited_journal = els[3].split('~~1_')
             setattr(self, 'sb_cited_journal', sb_cited_journal)
+
+    def load_from_csv_proj056(self, data, counter):
+        els = data.strip().split(',')
+        
+        setattr(self, 'line_id', str(counter))
+        setattr(self, 'citing_pid', els[0]) # citing_srcid
+
+        # setattr(self, '?', els[1]) # citing_issn_vars
+        # setattr(self, '?', els[2]) # citationcount
+
+        setattr(self, 'cited_year', els[3]) # ref_pubyear
+        setattr(self, 'cited_vol', els[4]) # ref_volume
+        
+        if len(els[5]) >= 8:
+            setattr(self, 'cited_issn_print', els[5]) # ref_issn_print
+
+        if len(els[6]) >= 8:
+            setattr(self, 'cited_issn_electronic', els[6]) # ref_issn_electronic
+        
+        setattr(self, 'cited_journal', els[7]) # ref_sourcetitle_set
+        setattr(self, 'cited_source', els[8]) # ref_sourcetitle_abbrev_set
+
+        if len(els[9]) >= 6:
+            setattr(self, 'cited_doiset', els[9]) # cited_doiset
+
 
     def load_from_json(self, data, keys):
         try:

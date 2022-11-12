@@ -135,11 +135,49 @@ def is_file_to_enrich(file_name):
     return True
 
 
-def enrich(data, format, ignore_previous_result, title2issnl, issn2titles, title_year_volume2issn, artifitial_title_year_volume2issn, issn2equations, use_fuzzy):
-    cit = Citation(data, format=format)
+def tostr_proj056(data):
+    cited_issnl = '' if not hasattr(data, 'cited_issnl') else data.cited_issnl       
+    cited_year = '' if not hasattr(data, 'cited_year') else data.cited_year
+    cited_vol = '' if not hasattr(data, 'cited_vol') else data.cited_vol
+    cited_journal = '' if not hasattr(data, 'cited_journal') else data.cited_journal
+    result_code = '-1' if not hasattr(data, 'result_code') else str(data.result_code)
+
+    cited_issnl_print = '' if not hasattr(data, 'cited_issnl_print') else str(data.cited_issnl_print)
+    cited_issnl_electronic = '' if not hasattr(data, 'cited_issnl_electronic') else str(data.cited_issnl_electronic)
+
+    return ','.join([
+        data.line_id, 
+        '#'.join(sorted(set([i for i in [cited_issnl, cited_issnl_print, cited_issnl_electronic] if len(i) == 9]))),
+        cited_year,
+        cited_vol,
+        cited_journal, 
+        result_code,
+    ])
+
+
+def contains_issn_data(data, issn_to_issnl):
+    contains = False
+
+    cip = getattr(data, 'cited_issn_print', '')
+    if len(cip) >= 8:
+        contains = True
+        cip_std = standardizer.journal_issn(cip)
+        data.setattr('cited_issnl_print', issn_to_issnl.get(cip_std, cip_std))
+
+    cie = getattr(data, 'cited_issn_electronic', '')
+    if len(cie) >= 8:
+        contains = True
+        cie_std = standardizer.journal_issn(cie)
+        data.setattr('cited_issnl_electronic', issn_to_issnl.get(cie_std, cie_std))
+
+    return contains
+
+
+def enrich(data, format, ignore_previous_result, title2issnl, issn2titles, title_year_volume2issn, artifitial_title_year_volume2issn, issn2equations, use_fuzzy, use_proj056, counter, issn_to_issnl):
+    cit = Citation(data, format=format, use_proj056=use_proj056, counter=counter)
 
     # Caso citação já tenha sido tratada e ISSN-L é válido
-    if not ignore_previous_result and 'cited_issnl' in cit.__dict__:
+    if not ignore_previous_result and contains_issn_data(cit, issn_to_issnl):
         return cit
     else:
         clean_previous_results(cit)
@@ -536,9 +574,15 @@ def main():
 
     parser.add_argument(
         '--ignore_previous_result',
-        default=True,
+        default=False,
         action='store_true',
         help='Indica para ignorar cited_issnl pré-existente'
+    )
+
+    parser.add_argument(
+        '--use_proj056',
+        default=False,
+        action="store_true",
     )
 
     params = parser.parse_args()
@@ -605,9 +649,15 @@ def main():
                         artifitial_title_year_volume2issn=artifitial_title_year_volume2issn,
                         issn2equations=issn2equations,
                         use_fuzzy=params.use_fuzzy,
+                        use_proj056=params.use_proj056,
+                        counter=line_counter,
+                        issn_to_issnl=issn2issnl,
                     )
 
-                    fout.write(citation_enriched.to_json() + '\n')
+                    if not params.use_proj056:
+                        fout.write(citation_enriched.to_json() + '\n')
+                    else:
+                        fout.write(tostr_proj056(citation_enriched) + '\n')
 
                     line = fin.readline()
 
