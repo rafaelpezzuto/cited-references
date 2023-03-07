@@ -18,6 +18,26 @@ MIN_WORDS_NUMBER = int(os.environ.get('MIN_WORDS_NUMBER', '2'))
 MIN_COMPARABLE_WORDS_NUMBER = int(os.environ.get('MIN_COMPARABLE_WORDS_NUMBER', '2'))
 
 
+def standardize_data(data: Citation):
+    if hasattr(data, 'citing_issn_vars'):
+        citing_issn_vars = set()
+        for i in data.citing_issn_vars.split(' '):
+            civ_stz = standardizer.journal_issn(i)
+            if civ_stz:
+                citing_issn_vars.add(civ_stz)
+        if len(citing_issn_vars) > 0:
+            setattr(data, 'citing_issn_vars', '#'.join(citing_issn_vars))
+    
+    if hasattr(data, 'cited_doiset'):
+        cited_doiset = set()
+        for d in data.cited_doiset.split(' '):
+            doi_stz = standardizer.document_doi(d, return_mode='path')
+            if not isinstance(doi_stz, dict):
+                cited_doiset.add(doi_stz)
+        if len(cited_doiset) > 0:
+            setattr(data, 'cited_doiset', '#'.join(cited_doiset))
+
+
 def fuzzy_match(title: str, data: dict, standardize=False):
     words = title.split(' ')
 
