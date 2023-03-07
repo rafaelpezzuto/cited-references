@@ -566,15 +566,28 @@ def main():
     parser.add_argument(
         '--input_format',
         default='json',
-        choices=['csv', 'json'],
+        choices=['csv', 'json', 'elsevier'],
         help='Formato de arquivo de entrada'
     )
 
     parser.add_argument(
         '--ignore_previous_result',
-        default=True,
+        default=False,
         action='store_true',
         help='Indica para ignorar cited_issnl pré-existente'
+    )
+
+    parser.add_argument(
+        '--jump',
+        default=0,
+        type=int,
+        help='Número de linhas para pular'
+    )
+
+    parser.add_argument(
+        '--stop',
+        type=int,
+        help='Número da linha para interromper execução'
     )
 
     params = parser.parse_args()
@@ -625,6 +638,12 @@ def main():
             with open(in_file, encoding=file_encoding) as fin:
                 line = fin.readline()
 
+                current_jump = 0
+                while current_jump < params.jump:
+                    line = fin.readline()
+                    current_jump += 1
+                print(f'Linhas puladas: {params.jump}')
+
                 while line:
                     line_counter += 1
                     if line_counter % 100 == 0:
@@ -632,7 +651,8 @@ def main():
                         fout.flush()
 
                     citation_enriched = enrich(
-                        line, 
+                        line,
+                        line_counter, 
                         format=params.input_format, 
                         ignore_previous_result=params.ignore_previous_result,
                         title2issnl=title2issnl,
@@ -646,6 +666,11 @@ def main():
                     fout.write(citation_enriched.to_json() + '\n')
 
                     line = fin.readline()
+
+                    if line_counter == params.stop:
+                        fout.flush()
+                        print(f'Terminou - resolveu linhas {params.jump} a {params.stop}')
+                        exit()
 
 
 if __name__ == '__main__':
