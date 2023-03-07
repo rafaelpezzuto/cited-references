@@ -85,16 +85,18 @@ def clean_previous_results(citation):
 
 
 def extract_essential_data(citation):
+    cited_journal_titles_cleaned = set()
     try:                    
-        cited_journal_title_cleaned = standardizer.journal_title_for_deduplication(citation.cited_journal).upper()
+        cjt = standardizer.journal_title_for_deduplication(citation.cited_journal).upper()
     except AttributeError:
-        cited_journal_title_cleaned = ''
+        cjt = ''
+    cited_journal_titles_cleaned.add(cjt)
 
-    if not cited_journal_title_cleaned:
-        try:
-            cited_journal_title_cleaned = standardizer.journal_title_for_deduplication(citation.cited_source).upper()
-        except AttributeError:
-            cited_journal_title_cleaned = ''
+    try:
+        cs = standardizer.journal_title_for_deduplication(citation.cited_source).upper()
+    except AttributeError:
+        cs = ''
+    cited_journal_titles_cleaned.add(cs)
 
     try:
         cited_year_cleaned = str(standardizer.document_publication_date(citation.cited_year, only_year=True))
@@ -106,7 +108,7 @@ def extract_essential_data(citation):
     except Exception:
         cited_volume_cleaned = ''
 
-    return cited_journal_title_cleaned, cited_year_cleaned, cited_volume_cleaned
+    return cited_journal_titles_cleaned, cited_year_cleaned, cited_volume_cleaned
 
 
 def get_titles(issn_list, issn2titles):
