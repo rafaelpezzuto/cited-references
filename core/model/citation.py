@@ -39,12 +39,39 @@ CITATION_ROW_KEYS_ELSEVIER = [
 
 
 class Citation:
-    def __init__(self, data, format='json', keys=CITATION_ROW_KEYS_SCIELO):
-        if format == 'json':
+    def __init__(self, data, line_number, format='json', keys=CITATION_ROW_KEYS_SCIELO):
+        if format == 'elsevier':
+            self.load_from_csv_elsevier(data, line_number)
+        
+        elif format == 'json':
             self.load_from_json(data, keys)
 
         elif format == 'csv':
             self.load_from_csv(data)
+
+
+    def load_from_csv_elsevier(self, data, line_number):
+        els = data.strip().split(',')
+        # 0. citing_srcid
+        # 1. citing_issn_vars
+        # 2. citationcount
+        # 3. ref_pubyear
+        # 4. ref_volume
+        # 5. ref_issn_print
+        # 6. ref_issn_electronic
+        # 7. ref_sourcetitle_set
+        # 8. ref_sourcetitle_abbrev_set
+        # 9. cited_doiset
+        setattr(self, 'line_id', line_number)
+        setattr(self, 'citing_pid', els[0])
+        setattr(self, 'cited_year', els[3])
+        setattr(self, 'cited_journal', els[7])
+        setattr(self, 'cited_source', els[8])
+        setattr(self, 'cited_vol', els[4])
+        setattr(self, 'cited_doiset', els[9])
+        setattr(self, 'citation_count', els[2])
+        setattr(self, 'citing_issn_vars', els[1])
+
 
     def load_from_csv(self, data):
         els = data.strip().split('|')
@@ -58,10 +85,10 @@ class Citation:
             setattr(self, 'sb_cited_journal', sb_cited_journal)
             setattr(self, 'sb_cited_issn', sb_cited_issn)
         elif '~~1' in els[3]:
-            discard, sb_cited_journal = els[3].split('~~1_')
+            _, sb_cited_journal = els[3].split('~~1_')
             setattr(self, 'sb_cited_journal', sb_cited_journal)
 
-    def load_from_json(self, data, keys):
+    def load_from_json(self, data):
         try:
             json_data = json.loads(data)
         except json.JSONDecodeError:
