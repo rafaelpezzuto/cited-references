@@ -652,7 +652,7 @@ def main():
 
                     citation_enriched = enrich(
                         line,
-                        line_counter, 
+                        line_counter + params.jump, 
                         format=params.input_format, 
                         ignore_previous_result=params.ignore_previous_result,
                         title2issnl=title2issnl,
@@ -667,7 +667,7 @@ def main():
 
                     line = fin.readline()
 
-                    if line_counter == params.stop:
+                    if line_counter + params.jump == params.stop:
                         fout.flush()
                         print(f'Terminou - resolveu linhas {params.jump} a {params.stop}')
                         exit()
