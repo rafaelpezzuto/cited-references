@@ -1,4 +1,5 @@
 import argparse
+import csv
 import logging
 import magic
 import re
@@ -30,10 +31,13 @@ def standardize_data(data: Citation):
     
     if hasattr(data, 'cited_doiset'):
         cited_doiset = set()
-        for d in data.cited_doiset.split(' '):
-            doi_stz = standardizer.document_doi(d, return_mode='path')
-            if not isinstance(doi_stz, dict):
-                cited_doiset.add(doi_stz)
+        if data.cited_doiset is None:
+            print(data)
+        else:
+            for d in data.cited_doiset.split(' '):
+                doi_stz = standardizer.document_doi(d, return_mode='path')
+                if not isinstance(doi_stz, dict):
+                    cited_doiset.add(doi_stz)
         if len(cited_doiset) > 0:
             setattr(data, 'cited_doiset', '#'.join(cited_doiset))
 
@@ -636,15 +640,21 @@ def main():
             logging.debug(f'Charset detectado de {in_file} é {file_encoding}')
 
             with open(in_file, encoding=file_encoding) as fin:
-                line = fin.readline()
 
-                current_jump = 0
-                while current_jump < params.jump:
-                    line = fin.readline()
-                    current_jump += 1
+                ### Para o caso de ser formato Elsevier
+                csvreader = csv.DictReader(fin, delimiter=',', quoting=csv.QUOTE_ALL)
+
+                current_jump = 1
+
+                if params.jump > 0:
+                    for line in csvreader:
+                        if current_jump == params.jump:
+                            break
+                        current_jump += 1
+
                 print(f'Linhas puladas: {params.jump}')
 
-                while line:
+                for line in csvreader:
                     line_counter += 1
                     if line_counter % 100 == 0:
                         logging.debug(f'{line_counter}')
@@ -665,12 +675,47 @@ def main():
 
                     fout.write(citation_enriched.to_json() + '\n')
 
-                    line = fin.readline()
-
                     if line_counter + params.jump == params.stop:
                         fout.flush()
                         print(f'Terminou - resolveu linhas {params.jump} a {params.stop}')
                         exit()
+
+                ### Para o caso de ser outro formato
+                # line = fin.readline()
+
+                # current_jump = 0
+                # while current_jump < params.jump:
+                #     line = fin.readline()
+                #     current_jump += 1
+                # print(f'Linhas puladas: {params.jump}')
+
+                # while line:
+                #     line_counter += 1
+                #     if line_counter % 100 == 0:
+                #         logging.debug(f'{line_counter}')
+                #         fout.flush()
+
+                    # citation_enriched = enrich(
+                    #     line,
+                    #     line_counter + params.jump, 
+                    #     format=params.input_format, 
+                    #     ignore_previous_result=params.ignore_previous_result,
+                    #     title2issnl=title2issnl,
+                    #     issn2titles=issn2titles,
+                    #     title_year_volume2issn=title_year_volume2issn,
+                    #     artifitial_title_year_volume2issn=artifitial_title_year_volume2issn,
+                    #     issn2equations=issn2equations,
+                    #     use_fuzzy=params.use_fuzzy,
+                    # )
+
+                    # fout.write(citation_enriched.to_json() + '\n')
+
+                    # line = fin.readline()
+
+                    # if line_counter + params.jump == params.stop:
+                    #     fout.flush()
+                    #     print(f'Terminou - resolveu linhas {params.jump} a {params.stop}')
+                    #     exit()
 
 
 if __name__ == '__main__':
