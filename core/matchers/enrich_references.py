@@ -6,6 +6,7 @@ import re
 import os
 
 from scielo_scholarly_data import standardizer
+from scielo_scholarly_data.standardizer import ImpossibleConvertionToIntError, InvalidRomanNumeralError
 from core.util import file
 from core.model.citation import Citation
 from result_code import *
@@ -17,6 +18,21 @@ MIN_WORD_LENGTH = int(os.environ.get('MIN_WORD_LENGTH', '2'))
 MIN_TITLE_LENGTH = int(os.environ.get('MIN_TITLE_LENGTH', '6'))
 MIN_WORDS_NUMBER = int(os.environ.get('MIN_WORDS_NUMBER', '2'))
 MIN_COMPARABLE_WORDS_NUMBER = int(os.environ.get('MIN_COMPARABLE_WORDS_NUMBER', '2'))
+REGEX_VOLUME = r'^(?P<posfix>[v|V])(?P<volume>\d*)$'
+
+
+def fix_volume(text):
+	if text.isdigit():
+		return text
+
+	m = re.match(REGEX_VOLUME, text)
+	if m:
+		return m.groupdict().get('volume')
+
+	try:
+		return standardizer.issue_volume(text)
+	except (ImpossibleConvertionToIntError, InvalidRomanNumeralError):
+		return standardizer.issue_volume(text, force_integer=False)
 
 
 def standardize_data(data: Citation):
@@ -29,7 +45,7 @@ def standardize_data(data: Citation):
         if len(citing_issn_vars) > 0:
             setattr(data, 'citing_issn_vars', '#'.join(citing_issn_vars))
     
-    if hasattr(data, 'cited_doiset'):
+    if hasattr(data, 'cited_doiset') or hasattr(data, 'cited_doi'):
         cited_doiset = set()
         if data.cited_doiset is None:
             print(data)
@@ -40,6 +56,10 @@ def standardize_data(data: Citation):
                     cited_doiset.add(doi_stz)
         if len(cited_doiset) > 0:
             setattr(data, 'cited_doiset', '#'.join(cited_doiset))
+
+    if hasattr(data, 'cited_vol'):
+        fixed_vol = fix_volume(data.cited_vol)
+        setattr(data, 'cited_vol', fixed_vol)
 
 
 def fuzzy_match(title: str, data: dict, standardize=False):
