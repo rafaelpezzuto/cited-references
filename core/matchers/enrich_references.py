@@ -590,7 +590,7 @@ def main():
     parser.add_argument(
         '--input_format',
         default='json',
-        choices=['csv', 'json', 'elsevier'],
+        choices=['csv', 'json', 'elsevier', 'tyv'],
         help='Formato de arquivo de entrada'
     )
 
@@ -659,10 +659,20 @@ def main():
             file_encoding = detect_file_encoding(in_file)
             logging.debug(f'Charset detectado de {in_file} é {file_encoding}')
 
-            with open(in_file, encoding=file_encoding) as fin:
+            if params.input_format == 'tyv':
+                fieldnames = ['cid', 'freq', 'cited_doi', 'cited_journal', 'cited_year', 'cited_volume']
+                delimiter = '|'
+            else:
+                fieldnames = []
+                delimiter = ','
+
+            with open(in_file, encoding=file_encoding, errors='ignore') as fin:
 
                 ### Para o caso de ser formato Elsevier
-                csvreader = csv.DictReader(fin, delimiter=',', quoting=csv.QUOTE_ALL)
+                if len(fieldnames) != 0:
+                    csvreader = csv.DictReader(fin, delimiter=delimiter, fieldnames=fieldnames, quoting=csv.QUOTE_NONE, escapechar='\\', restval='')
+                else:
+                    csvreader = csv.DictReader(fin, delimiter=delimiter, quoting=csv.QUOTE_MINIMAL, escapechar='\\', restval='')
 
                 current_jump = 1
 

@@ -49,9 +49,12 @@ class Citation:
         elif format == 'csv':
             self.load_from_csv(data)
 
+        elif format == 'tyv':
+            self.load_from_tyv(data)
+
 
     def load_from_csv_elsevier(self, data, line_number):
-        setattr(self, 'line_id', data['lid']) ### FIXME: elemento temporário para corrigir linhas problemáticas. Deve ser line_number
+        setattr(self, 'id', data['id']) 
         setattr(self, 'citing_pid', data['citing_srcid'])
         setattr(self, 'cited_year', data['ref_pubyear'])
         setattr(self, 'cited_journal', data['ref_sourcetitle_set'])
@@ -60,6 +63,17 @@ class Citation:
         setattr(self, 'cited_doiset', data['cited_doiset'])
         setattr(self, 'citation_count', data['citationcount'])
         setattr(self, 'citing_issn_vars', data['citing_issn_vars'])
+        setattr(self, 'elsevier_cited_issn_print', data['ref_issn_print'])
+        setattr(self, 'elsevier_cited_issn_electronic', data['ref_issn_electronic'])
+
+
+    def load_from_tyv(self, data):
+        setattr(self, 'id', data['cid'].strip()) 
+        setattr(self, 'cited_year', data['cited_year'].strip())
+        setattr(self, 'cited_journal', data['cited_journal'].strip())
+        setattr(self, 'cited_vol', data['cited_volume'].strip())
+        setattr(self, 'cited_doiset', data['cited_doi'].strip())
+        setattr(self, 'citation_count', data['freq'].strip())
 
 
     def load_from_csv(self, data):
