@@ -187,8 +187,8 @@ def is_last_item(current_idx, list_length):
     return False
 
 
-def enrich(data, line_number, format, ignore_previous_result, title2issnl, issn2titles, title_year_volume2issn, artifitial_title_year_volume2issn, issn2equations, use_fuzzy):
-    cit = Citation(data, line_number, format=format)
+def enrich(data, format, ignore_previous_result, title2issnl, issn2titles, title_year_volume2issn, artifitial_title_year_volume2issn, issn2equations, use_fuzzy):
+    cit = Citation(data, format=format)
 
     # Caso citação já tenha sido tratada e ISSN-L é válido
     if not ignore_previous_result and 'cited_issnl' in cit.__dict__:
@@ -668,7 +668,7 @@ def main():
 
             with open(in_file, encoding=file_encoding, errors='ignore') as fin:
 
-                ### Para o caso de ser formato Elsevier
+                ### Para o caso de ser format tyv
                 if len(fieldnames) != 0:
                     csvreader = csv.DictReader(fin, delimiter=delimiter, fieldnames=fieldnames, quoting=csv.QUOTE_NONE, escapechar='\\', restval='')
                 else:
@@ -691,8 +691,7 @@ def main():
                         fout.flush()
 
                     citation_enriched = enrich(
-                        line,
-                        line_counter + params.jump, 
+                        line, 
                         format=params.input_format, 
                         ignore_previous_result=params.ignore_previous_result,
                         title2issnl=title2issnl,
@@ -709,43 +708,6 @@ def main():
                         fout.flush()
                         print(f'Terminou - resolveu linhas {params.jump} a {params.stop}')
                         exit()
-
-                ### Para o caso de ser outro formato
-                # line = fin.readline()
-
-                # current_jump = 0
-                # while current_jump < params.jump:
-                #     line = fin.readline()
-                #     current_jump += 1
-                # print(f'Linhas puladas: {params.jump}')
-
-                # while line:
-                #     line_counter += 1
-                #     if line_counter % 100 == 0:
-                #         logging.debug(f'{line_counter}')
-                #         fout.flush()
-
-                    # citation_enriched = enrich(
-                    #     line,
-                    #     line_counter + params.jump, 
-                    #     format=params.input_format, 
-                    #     ignore_previous_result=params.ignore_previous_result,
-                    #     title2issnl=title2issnl,
-                    #     issn2titles=issn2titles,
-                    #     title_year_volume2issn=title_year_volume2issn,
-                    #     artifitial_title_year_volume2issn=artifitial_title_year_volume2issn,
-                    #     issn2equations=issn2equations,
-                    #     use_fuzzy=params.use_fuzzy,
-                    # )
-
-                    # fout.write(citation_enriched.to_json() + '\n')
-
-                    # line = fin.readline()
-
-                    # if line_counter + params.jump == params.stop:
-                    #     fout.flush()
-                    #     print(f'Terminou - resolveu linhas {params.jump} a {params.stop}')
-                    #     exit()
 
 
 if __name__ == '__main__':

@@ -24,24 +24,23 @@ CITATION_ROW_KEYS_RM = [
 ]
 
 CITATION_ROW_KEYS_ELSEVIER = [
-    'line_id',
     'citing_srcid',
     'citing_issn_vars',
-    'citationcount',
     'ref_pubyear',
     'ref_volume',
     'ref_issn_print',
     'ref_issn_electronic',
-    'ref_sourcetitle_set',
-    'ref_sourcetitle_abbrev_set',
+    'ref_sourcetitle',
+    'ref_sourcetitle_abbrev',
     'cited_doiset',
+    'id'
 ]
 
 
 class Citation:
-    def __init__(self, data, line_number, format='json', keys=CITATION_ROW_KEYS_SCIELO):
+    def __init__(self, data, format='json', keys=CITATION_ROW_KEYS_SCIELO):
         if format == 'elsevier':
-            self.load_from_csv_elsevier(data, line_number)
+            self.load_from_csv_elsevier(data)
         
         elif format == 'json':
             self.load_from_json(data, keys)
@@ -53,7 +52,7 @@ class Citation:
             self.load_from_tyv(data)
 
 
-    def load_from_csv_elsevier(self, data, line_number):
+    def load_from_csv_elsevier(self, data):
         setattr(self, 'id', data['id']) 
         setattr(self, 'citing_pid', data['citing_srcid'])
         setattr(self, 'cited_year', data['ref_pubyear'])
@@ -61,7 +60,6 @@ class Citation:
         setattr(self, 'cited_source', data['ref_sourcetitle_abbrev_set'])
         setattr(self, 'cited_vol', data['ref_volume'])
         setattr(self, 'cited_doiset', data['cited_doiset'])
-        setattr(self, 'citation_count', data['citationcount'])
         setattr(self, 'citing_issn_vars', data['citing_issn_vars'])
         setattr(self, 'elsevier_cited_issn_print', data['ref_issn_print'])
         setattr(self, 'elsevier_cited_issn_electronic', data['ref_issn_electronic'])
