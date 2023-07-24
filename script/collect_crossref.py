@@ -44,10 +44,10 @@ def load_previous_results(dir):
 class CrossrefAsyncCollector:
     logging.basicConfig(level=logging.INFO)
 
-    def __init__(self, email, path):
+    def __init__(self, email, path, dir_results):
         self.email = email
         self.path = path
-        self.path_results = os.path.join(DIR_DATA, f'crossref.{time.time()}.json')
+        self.path_results = os.path.join(dir_results, f'crossref.{time.time()}.json')
         self.codes = self.load_codes(self.path)
 
     def load_codes(self, path):
@@ -106,6 +106,7 @@ class CrossrefAsyncCollector:
                 metadata = self.parse_result(raw)
 
                 if metadata:
+                    logging.info(f'{path} has been collected.')
                     self.save_result({'_id': path, 'crossref': metadata})
 
 
@@ -131,7 +132,7 @@ def main():
     )
     parser.add_argument(
         '-r', '--dir_results',
-        default='.'
+        default=DIR_DATA,
     )
 
     args = parser.parse_args()
@@ -144,7 +145,7 @@ def main():
 
     codes_to_ignore = doi_to_issn.union(codes_collected)
     try:
-        cac = CrossrefAsyncCollector(email=args.email, path=args.path)
+        cac = CrossrefAsyncCollector(email=args.email, path=args.path, dir_results=args.dir_results)
 
         loop = asyncio.get_event_loop()
         future = asyncio.ensure_future(cac.run(codes_to_ignore))
