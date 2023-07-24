@@ -13,7 +13,7 @@ python /home/rafaeljpd/Data/cimetrias/elsevier/databricks/scripts/cited-referenc
     --equations /home/rafaeljpd/Data/cimetrias/correction-bases/current-v0.6c/equations_issn_v0.6c.csv \
     --use_fuzzy \
     --output "output.$JUMP.$STOP.csv" \
-    --input /home/rafaeljpd/Data/cimetrias/elsevier/databricks/references/test_56_export.sanitized.csv \
+    --input /home/rafaeljpd/Data/cimetrias/elsevier/databricks/references/proj_056_bradfordzones_export_20230705.csv \
     --input_format elsevier \
     --ignore_previous_result \
     --jump "$JUMP" \
