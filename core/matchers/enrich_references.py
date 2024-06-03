@@ -332,6 +332,7 @@ def enrich(data, format, ignore_previous_result, title2issnl, issn2titles, title
                             # Não foi possível decidir qual é o ISSN-L correto
                             if is_last_item(_idx, _total_titles):
                                 cit.setattr('result_code', ERROR_EXACT_MATCH_UNDECIDABLE)
+                                cit.setattr('issnls_size', len(exact_match_issnls))
                                 return cit
 
                         # Não há dados de ano para fazer desambiguação
@@ -347,6 +348,7 @@ def enrich(data, format, ignore_previous_result, title2issnl, issn2titles, title
                         if not cited_year_cleaned.isdigit():
                             if is_last_item(_idx, _total_titles):
                                 cit.setattr('result_code', ERROR_FUZZY_MATCH_INVALID_YEAR)
+                                cit.setattr('issnls_size', 0)
                                 return cit
                         else:
                             fuzzy_match_issnls = fuzzy_match(cjt_cleaned, title2issnl)
@@ -511,6 +513,7 @@ def enrich(data, format, ignore_previous_result, title2issnl, issn2titles, title
                             # Não houve correspondência inexata
                             else:
                                 if is_last_item(_idx, _total_titles):
+                                    cit.setattr('issnls_size', len(fuzzy_match_issnls))
                                     cit.setattr('result_code', ERROR_JOURNAL_TITLE_NOT_FOUND)
                                     return cit
 
@@ -518,6 +521,7 @@ def enrich(data, format, ignore_previous_result, title2issnl, issn2titles, title
                     else:
                         if is_last_item(_idx, _total_titles):
                             cit.setattr('result_code', NOT_CONDUCTED_MATCH_FORCED_BY_USER)
+                            cit.setattr('issnls_size', -1)
                             return cit
 
         # Caso não haja título de periódico
@@ -537,15 +541,9 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--title_to_issnl',
-        required=True,
-        help='Base de correção Título de periódico -> ISSN-L',
-    )
-
-    parser.add_argument(
         '--issnl_to_all',
         required=True,
-        help='Base de correção ISSNL -> Metadados',
+        help='Base de correção GISSN -> DADOS',
     )
 
     parser.add_argument(
@@ -634,11 +632,11 @@ def main():
     total_files = len(input_pathfiles)
     logging.info(f'Há {total_files} arquivo(s) a ser(em) enriquecido(s)')
 
-    logging.info('Carregando base Title to ISSN-L...')
-    title2issnl = file.load_title_to_issnl(params.title_to_issnl)
-
-    logging.info('Carregando base ISSN-L to All...')
+    logging.info('Carregando base GISSN --> DADOS...')
     issn2issnl, issn2titles = file.load_issnl_to_all(params.issnl_to_all)
+
+    logging.info('Gerando base TITLE --> GOLD_ISSN...')
+    title2issnl = file.load_title_to_gissn(issn2issnl, issn2titles)
 
     logging.info('Carregando base Title Year Volume to ISSN...')
     title_year_volume2issn = file.load_year_volume(params.title_year_volume_to_issn, issn2issnl)

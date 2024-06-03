@@ -8,15 +8,16 @@ from scielo_scholarly_data import standardizer
 
 BASE2COLUMN_INDEXES = {
     'doaj': {
-        'issn': [2, 3],
-        'title': [0, 1],
-        'sep': '\t',
-        'country': 4,
+        'issn': [5, 6],
+        'title': [0, 4],
+        'sep': ',',
+        'country': 10,
     },
     'latindex': {
-        'issn': [0, 1],
-        'title': [2, 3, 4],
-        'sep': '\t',
+        'issn': [7, 8, 9],
+        'title': [1, 3, 4],
+        'country': 6,
+        'sep': ';',
     },
     'nlm': {
         'issn': [3, 4],

@@ -62,32 +62,36 @@ def close_files(dict_files):
             ...
 
 
-def load_title_to_issnl(path: str, sep='|'):
-    with open(path) as fin:
-        title_to_issnl = {}
+def load_title_to_gissn(issn_to_issnl, issn_to_titles):
+    title_to_gissn = {}
 
-        for line in fin:
-            els = line.split(sep)
+    for issn in issn_to_titles:
+        gissn = issn_to_issnl[issn]
+        for t in issn_to_titles[issn]:
+            if t not in title_to_gissn:
+                title_to_gissn[t] = set()
+            title_to_gissn[t].add(gissn)
 
-            title = els[0].strip()
-            issnls = els[1].strip()
+        if gissn is None or len(gissn) != 9:
+            print(f'ISSN com problema {issn}')
 
-            title_to_issnl[title] = issnls
-
-        return title_to_issnl
+    for t in title_to_gissn:
+        title_to_gissn[t] = '#'.join([v for v in title_to_gissn[t] if v is not None])
+    return title_to_gissn
 
 
 def load_issnl_to_all(path: str, sep1='|', sep2='#'):
     with open(path) as fin:
+        fin.readline()
         issn_to_issnl = {}
         issn_to_titles = {}
 
         for line in fin:
             els = line.split(sep1)
 
-            issns = [standardizer.journal_issn(i) for i in els[3].split(sep2)]
-            issnl = standardizer.journal_issn(els[0])
-            titles = els[4].split(sep2)
+            issns = els[1].split(sep2)
+            issnl = els[0]
+            titles = els[5].split(sep2)
 
             for i in issns:
                 if i not in issn_to_issnl:

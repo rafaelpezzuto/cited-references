@@ -37,7 +37,7 @@ def _extract_scope_from_filename(filename):
     return basename
 
 
-def run(input, key_value, scope, delimiter='\t'):
+def run(input, key_value, scope, delimiter=','):
     delimiter = '|' if scope == 'scielo' else delimiter
 
     issn_keys = _detect_issn_cols(input, delimiter)
@@ -173,11 +173,13 @@ def main():
 
     parser.add_argument(
         '--output_file',
+        required=True,
         help='Caminho do arquivo de saída do processamento',
     )
 
     parser.add_argument(
         '--input_dir',
+        required=True,
         help='Caminho do diretório com arquivos de entrada do processamento',
     )
 
