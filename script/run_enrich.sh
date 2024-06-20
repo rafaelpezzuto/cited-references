@@ -1,4 +1,6 @@
 #!/bin/bash
+#. "/home/rafaeljpd/.virtualenvs/cimetrias/bin/activate"
+#cd "/home/rafaeljpd/Repos/science/cited-references/core/matchers"
 
 JUMP=$1
 STOP=$2
