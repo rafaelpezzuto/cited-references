@@ -39,6 +39,12 @@ CITATION_ROW_KEYS_ELSEVIER = [
 
 class Citation:
     def __init__(self, data, format='json', keys=CITATION_ROW_KEYS_SCIELO):
+        self.keys = keys
+        self.data = data
+
+        if format == 'scl24':
+            self.load_from_csv_scielo()
+
         if format == 'elsevier':
             self.load_from_csv_elsevier(data)
         
@@ -51,6 +57,15 @@ class Citation:
         elif format == 'tyv':
             self.load_from_tyv(data)
 
+    def load_from_csv_scielo(self):
+        for k in self.keys:
+            if k == 'cited_source':
+                if '^l' in self.data[k]:
+                    els = self.data[k].split('^l')
+                    title = els[0]
+                    setattr(self, k, title)
+                    continue
+            setattr(self, k, self.data[k])
 
     def load_from_csv_elsevier(self, data):
         setattr(self, 'id', data['id']) 
@@ -64,7 +79,6 @@ class Citation:
         setattr(self, 'elsevier_cited_issn_print', data['ref_issn_print'])
         setattr(self, 'elsevier_cited_issn_electronic', data['ref_issn_electronic'])
 
-
     def load_from_tyv(self, data):
         setattr(self, 'id', data['cid'].strip()) 
         setattr(self, 'cited_year', data['cited_year'].strip())
@@ -72,7 +86,6 @@ class Citation:
         setattr(self, 'cited_vol', data['cited_volume'].strip())
         setattr(self, 'cited_doiset', data['cited_doi'].strip())
         setattr(self, 'citation_count', data['freq'].strip())
-
 
     def load_from_csv(self, data):
         els = data.strip().split('|')
@@ -89,7 +102,6 @@ class Citation:
             _, sb_cited_journal = els[3].split('~~1_')
             setattr(self, 'sb_cited_journal', sb_cited_journal)
 
-
     def load_from_json(self, data):
         try:
             json_data = json.loads(data)
@@ -99,10 +111,14 @@ class Citation:
         for k in json_data.keys():
             setattr(self, k, json_data[k])
 
-
     def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=False)
-
+        try:
+            del self.data
+            del self.keys
+            return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=False)
+        except TypeError as e:
+            print(e)
+            print(self.data)
 
     def setattr(self, key, value):
         setattr(self, key, value)

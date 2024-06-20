@@ -5,10 +5,11 @@ import magic
 import re
 import os
 
+from scielo_scholarly_data.dates import DateMonthError, InvalidFormatError
 from scielo_scholarly_data import standardizer
 from scielo_scholarly_data.standardizer import ImpossibleConvertionToIntError, InvalidRomanNumeralError
 from core.util import file
-from core.model.citation import Citation
+from core.model.citation import Citation, CITATION_ROW_KEYS_SCIELO
 from result_code import *
 
 
@@ -34,8 +35,28 @@ def fix_volume(text):
 	except (ImpossibleConvertionToIntError, InvalidRomanNumeralError):
 		return standardizer.issue_volume(text, force_integer=False)
 
+def fix_year(text):
+    try:
+        return str(standardizer.document_publication_date(text, only_year=True))
+    except DateMonthError:
+        if len(text) >= 4:
+            return text[:4]
+        return text or ''
+    except InvalidFormatError as e:
+        return text or ''
+    except Exception as e:
+        return text or ''
 
 def standardize_data(data: Citation):
+    if hasattr(data, 'cited_source'):
+        if '^l' in data.cited_source:
+            els = data.cited_source.split('^l')
+            title = els[0]
+            setattr(data, 'cited_source', title)
+
+    if hasattr(data, 'cited_year'):
+        setattr(data, 'cited_year_std', fix_year(data.cited_year))
+
     if hasattr(data, 'citing_issn_vars'):
         citing_issn_vars = set()
         for i in data.citing_issn_vars.split(' '):
@@ -44,8 +65,8 @@ def standardize_data(data: Citation):
                 citing_issn_vars.add(civ_stz)
         if len(citing_issn_vars) > 0:
             setattr(data, 'citing_issn_vars', '#'.join(citing_issn_vars))
-    
-    if hasattr(data, 'cited_doiset') or hasattr(data, 'cited_doi'):
+
+    if hasattr(data, 'cited_doiset'):
         cited_doiset = set()
         if data.cited_doiset is None:
             print(data)
@@ -57,10 +78,17 @@ def standardize_data(data: Citation):
         if len(cited_doiset) > 0:
             setattr(data, 'cited_doiset', '#'.join(cited_doiset))
 
+    if hasattr(data, 'cited_doi'):
+        doi_stz = standardizer.document_doi(data.cited_doi, return_mode='path')
+        if not isinstance(doi_stz, dict):
+            setattr(data, 'cited_doi', doi_stz)
+
     if hasattr(data, 'cited_vol'):
         fixed_vol = fix_volume(data.cited_vol)
-        setattr(data, 'cited_vol', fixed_vol)
+        setattr(data, 'cited_vol_std', fixed_vol)
 
+    setattr(data, 'cited_journal_std', standardizer.journal_title_for_deduplication(data.cited_journal).upper())
+    setattr(data, 'cited_source_std', standardizer.journal_title_for_deduplication(data.cited_source).upper())
 
 def fuzzy_match(title: str, data: dict, standardize=False):
     words = title.split(' ')
@@ -73,7 +101,7 @@ def fuzzy_match(title: str, data: dict, standardize=False):
     valid_words = [w for w in words if len(w) >= MIN_WORD_LENGTH]
 
     if len(cleaned_title) >= MIN_TITLE_LENGTH and len(words) >= MIN_WORDS_NUMBER and len(valid_words) >= MIN_COMPARABLE_WORDS_NUMBER:
-        pattern = r'[\w|\s]*'.join([word for word in words]) + '[\w|\s]*'
+        pattern = r'[\w|\s]*'.join([word for word in words]) + r'[\w|\s]*'
 
         title_pattern = re.compile(pattern, re.UNICODE)
 
@@ -89,16 +117,13 @@ def fuzzy_match(title: str, data: dict, standardize=False):
 
     return set()
 
-
 def infer_volume(issn: str, year: int, data: dict):
     if issn in data:
         a, b = data[issn]
         return round(a + (b * year))
 
-
 def get_issns_list_sign(issn_list):
     return '#'.join(sorted(issn_list))
-
 
 def clean_previous_results(citation):
     for pv in ['result', 'result_code', 'cited_issnl']:
@@ -107,33 +132,8 @@ def clean_previous_results(citation):
         except KeyError:
             ...
 
-
 def extract_essential_data(citation):
-    cited_journal_titles_cleaned = set()
-    try:                    
-        cjt = standardizer.journal_title_for_deduplication(citation.cited_journal).upper()
-    except AttributeError:
-        cjt = ''
-    cited_journal_titles_cleaned.add(cjt)
-
-    try:
-        cs = standardizer.journal_title_for_deduplication(citation.cited_source).upper()
-    except AttributeError:
-        cs = ''
-    cited_journal_titles_cleaned.add(cs)
-
-    try:
-        cited_year_cleaned = str(standardizer.document_publication_date(citation.cited_year, only_year=True))
-    except Exception:
-        cited_year_cleaned = ''
-
-    try:
-        cited_volume_cleaned = standardizer.issue_volume(citation.cited_vol)
-    except Exception:
-        cited_volume_cleaned = ''
-
-    return cited_journal_titles_cleaned, cited_year_cleaned, cited_volume_cleaned
-
+    return set([j for j in [citation.cited_journal_std, citation.cited_source_std] if j]), citation.cited_year_std, citation.cited_vol_std
 
 def get_titles(issn_list, issn2titles):
     titles = set()
@@ -142,7 +142,6 @@ def get_titles(issn_list, issn2titles):
         titles = titles.union(issn2titles.get(i, set()))
 
     return titles
-
 
 def detect_file_encoding(path):
     m = magic.Magic(mime_encoding=True)
@@ -154,7 +153,6 @@ def detect_file_encoding(path):
             return path_encoding
 
     return DEFAULT_CHARSET
-
 
 def gen_output_path(input_directory, input_path, output_path):
     if input_directory:
@@ -173,19 +171,16 @@ def gen_output_path(input_directory, input_path, output_path):
     
     return output_path
 
-
 def is_file_to_enrich(file_name):
     if 'enrich' in file_name:
         return False
 
     return True
 
-
 def is_last_item(current_idx, list_length):
     if 1 + current_idx == list_length:
         return True
     return False
-
 
 def enrich(data, format, ignore_previous_result, title2issnl, issn2titles, title_year_volume2issn, artifitial_title_year_volume2issn, issn2equations, use_fuzzy):
     cit = Citation(data, format=format)
@@ -588,7 +583,7 @@ def main():
     parser.add_argument(
         '--input_format',
         default='json',
-        choices=['csv', 'json', 'elsevier', 'tyv'],
+        choices=['csv', 'json', 'elsevier', 'tyv', 'scl24',],
         help='Formato de arquivo de entrada'
     )
 
@@ -660,6 +655,9 @@ def main():
             if params.input_format == 'tyv':
                 fieldnames = ['cid', 'freq', 'cited_doi', 'cited_journal', 'cited_year', 'cited_volume']
                 delimiter = '|'
+            elif params.input_format == 'scl24':
+                fieldnames = CITATION_ROW_KEYS_SCIELO
+                delimiter = ','
             else:
                 fieldnames = []
                 delimiter = ','
@@ -668,7 +666,7 @@ def main():
 
                 ### Para o caso de ser format tyv
                 if len(fieldnames) != 0:
-                    csvreader = csv.DictReader(fin, delimiter=delimiter, fieldnames=fieldnames, quoting=csv.QUOTE_NONE, escapechar='\\', restval='')
+                    csvreader = csv.DictReader(fin, delimiter=delimiter, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL, escapechar='\\', restval='')
                 else:
                     csvreader = csv.DictReader(fin, delimiter=delimiter, quoting=csv.QUOTE_MINIMAL, escapechar='\\', restval='')
 
