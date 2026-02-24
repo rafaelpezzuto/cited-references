@@ -23,17 +23,17 @@ REGEX_VOLUME = r'^(?P<posfix>[v|V])(?P<volume>\d*)$'
 
 
 def fix_volume(text):
-	if text.isdigit():
-		return text
+    if text.isdigit():
+        return text
 
-	m = re.match(REGEX_VOLUME, text)
-	if m:
-		return m.groupdict().get('volume')
+    m = re.match(REGEX_VOLUME, text)
+    if m:
+        return m.groupdict().get('volume')
 
-	try:
-		return standardizer.issue_volume(text)
-	except (ImpossibleConvertionToIntError, InvalidRomanNumeralError):
-		return standardizer.issue_volume(text, force_integer=False)
+    try:
+        return standardizer.issue_volume(text)
+    except (ImpossibleConvertionToIntError, InvalidRomanNumeralError):
+        return standardizer.issue_volume(text, force_integer=False)
 
 def fix_year(text):
     try:
